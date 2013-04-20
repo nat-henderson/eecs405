@@ -1,13 +1,14 @@
 import math
 
 class BPTree:
-    def __init__(self, keySize, dataRecord, blockPointer, dataPointer, blockSize):
+    def __init__(self, keySize, dataRecord, blockPointer, dataPointer, blockSize, coalescing = True):
         self.keySize = keySize
         self.dataRecordSize = dataRecord
         self.blockPointerSize = blockPointer
         self.dataPointerSize = dataPointer
         self.blockSize = blockSize
-        self.root = BPleaf(self, keySize, dataRecord, blockPointer, dataPointer, blockSize, keys = [])
+        self.coalescing = coalescing
+        self.root = BPleaf(self, keySize, dataRecord, blockPointer, dataPointer, blockSize, coalescing, keys = [])
     
     def insert(self, key):
         node = self.root
@@ -21,14 +22,18 @@ class BPTree:
             node = node.search(key)
         node.delete(key)
     
+    def lookup(self, key):
+        return self.root.findKey(key, 1)
+    
     def __str__(self):
         return str(self.root)
 
 class BPnode:
-    def __init__(self, parent, keySize, dataRecord, blockPointer, dataPointer, blockSize, keys=[], children=[]):
+    def __init__(self, parent, keySize, dataRecord, blockPointer, dataPointer, blockSize, coalescing, keys=[], children=[]):
         self.parent = parent
         self.order = int(math.floor(float(blockSize-blockPointer)/(keySize+blockPointer))) + 1
         self.keys = keys
+        self.coalescing = coalescing
         self.children = children
         
     def insert(self, node):
@@ -59,11 +64,11 @@ class BPnode:
         newChildren = self.children[:mid]
         self.keys = self.keys[mid:]
         self.children = self.children[mid:]
-        newNode = BPnode(self.parent, 1, 0, 0, 0, self.order-1, keys=newKeys, children=newChildren)
+        newNode = BPnode(self.parent, 1, 0, 0, 0, self.order-1, self.coalescing, keys=newKeys, children=newChildren)
         
         if isinstance(self.parent, BPTree):
             tree = self.parent
-            newRoot = BPnode(tree, 1, 0, 0, 0, self.order-1, keys=[], children=[])
+            newRoot = BPnode(tree, 1, 0, 0, 0, self.order-1, self.coalescing, keys=[], children=[])
             tree.root = newRoot
             self.parent = newRoot
             newNode.parent = newRoot
@@ -87,7 +92,9 @@ class BPnode:
         if isinstance(self.parent, BPTree) and len(self.children) == 1:
             self.parent.root = self.children[0]
             self.children[0].parent = self.parent
-        elif not isinstance(self.parent, BPTree) and len(self.children) < math.ceil(self.order/2.0):
+        elif not isinstance(self.parent, BPTree) and len(self.children) < math.ceil(self.order/2.0) and self.coalescing:
+            self.parent.combine(self)
+        elif not isinstance(self.parent, BPTree) and not self.coalescing and len(self.children) == 0:
             self.parent.combine(self)
     
     def merge(self, node):
@@ -115,8 +122,24 @@ class BPnode:
             child = child + 1
         return self.children[child]
     
+    def findKey(self, key, level):
+        if len(self.children) == 1:
+            return self.children[0].findKey(key, level+1)
+
+        child = 0
+        while child < len(self.keys) and key >= self.keys[child]:
+            child = child + 1
+        return self.children[child].findKey(key, level+1)
+    
     def findMin(self):
         return self.children[0].findMin()
+    
+    def updateKey(self, node):
+        index = self.children.index(node)
+        if index > 0:
+            self.keys[index-1] = node.findMin()
+        elif not isinstance(self.parent, BPTree):
+            self.parent.updateKey(self)
     
     def __str__(self):
         output = "[ \n"
@@ -129,10 +152,11 @@ class BPnode:
         return output
 
 class BPleaf:
-    def __init__(self, parent, keySize, dataRecord, blockPointer, dataPointer, blockSize, keys=[]):
+    def __init__(self, parent, keySize, dataRecord, blockPointer, dataPointer, blockSize, coalescing, keys=[]):
         self.parent = parent
-        self.order = int(math.floor(float(blockSize-blockPointer)/(keySize+dataRecord)))
+        self.order = int(math.floor(float(blockSize-blockPointer)/(keySize+dataPointer)))
         self.keys = keys
+        self.coalescing = coalescing
         
     def insert(self, key):
         self.keys.append(key)
@@ -143,10 +167,10 @@ class BPleaf:
     def split(self):
         newNodeList = self.keys[int(math.ceil(self.order/2.0)):]
         self.keys = self.keys[:int(math.ceil(self.order/2.0))]
-        newNode = BPleaf(self.parent, 1, 0, 0, 0, self.order, newNodeList)
+        newNode = BPleaf(self.parent, 1, 0, 0, 0, self.order, self.coalescing, newNodeList)
         if isinstance(self.parent, BPTree):
             tree = self.parent
-            newRoot = BPnode(tree, tree.keySize, tree.dataRecordSize, tree.blockPointerSize, tree.dataPointerSize, tree.blockSize, keys=[], children=[])
+            newRoot = BPnode(tree, tree.keySize, tree.dataRecordSize, tree.blockPointerSize, tree.dataPointerSize, tree.blockSize, self.coalescing, keys=[], children=[])
             tree.root = newRoot
             self.parent = newRoot
             newNode.parent = newRoot
@@ -157,15 +181,14 @@ class BPleaf:
         
     def delete(self, key):
         if key in self.keys:
+            index = self.keys.index(key)
             self.keys.remove(key)
-            if len(self.keys) < math.ceil(self.order/2.0) and not isinstance(self.parent, BPTree):
+            if index == 0 and len(self.keys) > 0 and not isinstance(self.parent, BPTree):
+                self.parent.updateKey(self)
+            if len(self.keys) < math.ceil(self.order/2.0) and not isinstance(self.parent, BPTree) and self.coalescing:
                 self.parent.combine(self)
-        
-    def find(self, key):
-        if key in self.keys:
-            return self.keys.index(key)
-        else:
-            return -1
+            elif not self.coalescing and len(self.keys) == 0 and isinstance(self.parent, BPnode):
+                self.parent.remove(self)
     
     def merge(self, node):
         if len(self.keys) == 0:
@@ -180,6 +203,12 @@ class BPleaf:
     
     def findMin(self):
         return self.keys[0]
+    
+    def findKey(self, key, level):
+        if key in self.keys:
+            return level
+        else:
+            return -1;
     
     def __str__(self):
         output = "[ "
