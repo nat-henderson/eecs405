@@ -55,6 +55,8 @@ class BPnode:
             self.keys.insert(index, minimum)
             self.children.insert(index+1, node)
         
+        node.updateParent(self)
+        
         if len(self.children) > self.order:
             self.split()
     
@@ -65,6 +67,9 @@ class BPnode:
         self.keys = self.keys[mid:]
         self.children = self.children[mid:]
         newNode = BPnode(self.parent, 1, 0, 0, 0, self.order-1, self.coalescing, keys=newKeys, children=newChildren)
+        
+        for child in newChildren:
+            child.updateParent(newNode)
         
         if isinstance(self.parent, BPTree):
             tree = self.parent
@@ -109,6 +114,9 @@ class BPnode:
             node.children.extend(self.children)
             self.children = node.children
         
+        for child in node.children:
+            child.updateParent(self)
+        
         if len(self.children) > self.order:
             self.split()
     
@@ -140,6 +148,9 @@ class BPnode:
             self.keys[index-1] = node.findMin()
         elif not isinstance(self.parent, BPTree):
             self.parent.updateKey(self)
+    
+    def updateParent(self, parent):
+        self.parent = parent
     
     def __str__(self):
         output = "[ \n"
@@ -209,6 +220,9 @@ class BPleaf:
             return level
         else:
             return -1;
+    
+    def updateParent(self, parent):
+        self.parent = parent
     
     def __str__(self):
         output = "[ "

@@ -18,7 +18,7 @@ class Simulation:
         self.coalesce = coalesce
         self.treetype = treetype
         self.tree = treetype(key_size, data_record_size, index_pointer_size,
-                             data_record_size, block_size, coalesce)
+                             data_pointer_size, block_size, coalesce)
         assert read_percent + insert_percent + delete_percent == 1.0
 
     def alter_parameters(self, **kwargs):
