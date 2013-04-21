@@ -45,7 +45,7 @@ class Simulation:
 
     def run(self):
         root = self.treetype(self.key_size, self.data_record_size, self.index_pointer_size,
-                             self.data_record_size, self.block_size, self.coalesce)
+                             self.data_pointer_size, self.block_size, self.coalesce)
         t1 = time.clock()
         for idx in range(self.steps):
             r = random.random()
