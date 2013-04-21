@@ -60,6 +60,6 @@ print str(tree2)
 tree2.delete(1)
 print str(tree2)
 
-from gui import get_tree_view
+from gui import get_tree_view, draw_a_tree
 
-tv = get_tree_view(tree2)
+tv = get_tree_view(tree2).mainloop()
