@@ -10,12 +10,14 @@ class BTree(object):
         self.blockSize = blockSize
         self.coalescing = coalescing
         self.root = Leaf(self, keySize, dataRecord, blockPointer, dataPointer, blockSize, coalescing, keys = [])
+        self.elements = 0
     
     def insert(self, key):
         node = self.root
         while not isinstance(node, Leaf):
             node = node.insertSearch(key)
         node.insert(key)
+        self.elements = self.elements + 1
     
     def delete(self, key):
         node = self.root
@@ -24,10 +26,29 @@ class BTree(object):
             if nextNode == node:
                 break
             node = nextNode
-        node.delete(key)
+        if node.delete(key):
+            self.elements = self.elements - 1
     
     def lookup(self, key):
         return self.root.findKey(key,1)
+    
+    def height(self):
+        height = 1
+        node = self.root
+        while not isinstance(node, Leaf):
+            node = node.children[0]
+            height = height + 1
+        return height
+    
+    def numIndexBlocks(self):
+        return self.root.numIndexBlocks()
+    
+    def numDataBlocks(self):
+        dataPerBlock = math.floor(self.blockSize / self.dataRecordSize)
+        return math.ceil(self.elements / dataPerBlock)
+    
+    def numElements(self):
+        return self.elements
     
     def __str__(self):
         return str(self.root)
@@ -177,12 +198,21 @@ class Node(object):
             self.keys.remove(key)
             self.keys.insert(index,replacement)
             self.children[index+1].delete(replacement)
+            return True
+        else:
+            return False
     
     def findMin(self):
         return self.children[0].findMin()
     
     def updateParent(self, parent):
         self.parent = parent
+    
+    def numIndexBlocks(self):
+        blocks = 1
+        for child in self.children:
+            blocks = blocks + child.numIndexBlocks()
+        return blocks
     
     def __str__(self):
         output = "[ \n"
@@ -209,6 +239,9 @@ class Leaf(object):
                 self.parent.combine(self)
             elif not self.coalescing and isinstance(self.parent, Node) and len(self.keys) == 0:
                 self.parent.combine(self)
+            return True
+        else:
+            return False
     
     def insert(self, key):
         self.keys.append(key)
@@ -258,6 +291,9 @@ class Leaf(object):
     
     def updateParent(self, parent):
         self.parent = parent
+    
+    def numIndexBlocks(self):
+        return 1
     
     def __str__(self):
         output = "[ "
