@@ -116,6 +116,9 @@ class Node(object):
             node.keys.extend(self.keys)
             self.children = node.children
             self.keys = node.keys
+        
+        for child in node.children:
+            child.updateParent(self)
             
         if len(self.children) > self.order:
             self.split()
@@ -129,12 +132,15 @@ class Node(object):
         self.children = self.children[mid:]
         newNode = Node(self.parent, 1, 0, 0, 0, self.order-1, self.coalescing, keys=newKeys, children=newChildren)
         
+        for child in newChildren:
+            child.updateParent(newNode)
+        
         if isinstance(self.parent, BTree):
             tree = self.parent
             newRoot = Node(tree, 1, 0, 0, 0, self.order-1, self.coalescing, keys=[], children=[self])
             tree.root = newRoot
             self.parent = newRoot
-            newNode .parent = newRoot
+            newNode.parent = newRoot
             newRoot.insertPair(newNode, parentKey)
         else:
             self.parent.insertPair(newNode, parentKey)
@@ -158,6 +164,8 @@ class Node(object):
             while index < len(self.keys) and key > self.keys[index]:
                 index = index + 1
             self.keys.insert(index, key)
+        
+        node.updateParent(self)
             
         if len(self.children) > self.order:
             self.split()
@@ -172,6 +180,9 @@ class Node(object):
     
     def findMin(self):
         return self.children[0].findMin()
+    
+    def updateParent(self, parent):
+        self.parent = parent
     
     def __str__(self):
         output = "[ \n"
@@ -244,6 +255,9 @@ class Leaf(object):
             return level
         else:
             return -1
+    
+    def updateParent(self, parent):
+        self.parent = parent
     
     def __str__(self):
         output = "[ "
