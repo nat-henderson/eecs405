@@ -5,7 +5,7 @@ class Simulation:
     def __init__(self, treetype, key_size = 4, data_record_size = 100, index_pointer_size = 8,
                  data_pointer_size = 10, block_size = 100,
                  read_percent = 0.5, insert_percent = 0.3, delete_percent = 0.2,
-                 steps = 1000, coalesce = True):
+                 steps = 100000, coalesce = True):
         self.key_size = key_size
         self.data_record_size = data_record_size
         self.index_pointer_size = index_pointer_size
@@ -32,21 +32,21 @@ class Simulation:
             assert self.read_percent + self.insert_percent + self.delete_percent == 1.0
 
     def execute_insert(self, to_insert):
-        print "inserting " + str(to_insert)
+        #print "inserting " + str(to_insert)
         self.tree.insert(to_insert)
 
     def execute_read(self, to_read):
-        print "reading " + str(to_read)
+        #print "reading " + str(to_read)
         self.tree.lookup(to_read)
 
     def execute_delete(self, to_delete):
-        print "deleting " + str(to_delete)
+        #print "deleting " + str(to_delete)
         self.tree.delete(to_delete)
 
     def run(self):
         root = self.treetype(self.key_size, self.data_record_size, self.index_pointer_size,
                              self.data_pointer_size, self.block_size, self.coalesce)
-        t1 = time.clock()
+        time.clock()
         for idx in range(self.steps):
             r = random.random()
             if (r < self.read_percent):
@@ -55,9 +55,13 @@ class Simulation:
                 self.execute_insert(random.choice(range(1,1000)))
             else:
                 self.execute_delete(random.choice(range(1,1000)))
-        t2 = time.clock()
-        print t2, t1, t2 - t1
+        t = time.clock()
+        print t
         
 if __name__ == "__main__":
     from BPlus import BPTree
-    Simulation(BPTree).run()
+    from gui import BetterTreeView
+    sim = Simulation(BPTree)
+    sim.run()
+    bv = BetterTreeView(sim)
+    bv.mainloop()

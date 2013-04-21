@@ -1,7 +1,7 @@
 from BPlus import BPTree, BPnode, BPleaf
 from Tkinter import *
 from nltk.tree import Tree
-from nltk.draw.tree import TreeView
+from nltk.draw.tree import TreeView, TreeWidget
 from simulation import Simulation
 import os
 
@@ -103,13 +103,30 @@ class CustomDialog(Dialog):
 
 class BetterTreeView(TreeView):
 
-    def __init__(self, simulation, *trees):
-        super(BetterTreeView, self).__init__(*trees)
+    def __init__(self, simulation):
+        super(BetterTreeView, self).__init__(BP_tree_to_nltk_tree(
+            simulation.tree.root))
         self.simulation = simulation
 
     def input_box(self, msg):
         d = CustomDialog(self._top, msg = msg)
         return d.result
+
+    def rerun_sim(self):
+        self.simulation.run()
+        for w in self._widgets:
+            self._cframe.destroy_widget(w)
+        del self._widgets[:]
+        bold = ('helvetica', -self._size.get(), 'bold')
+        helv = ('helvetica', -self._size.get())
+        widget = TreeWidget(self._cframe.canvas(), BP_tree_to_nltk_tree(self.simulation.tree.root),
+                            node_font=bold, leaf_color='#008040', node_color='#004080',
+                            roof_color='#004040', roof_fill='white', line_color='#004040',
+                            draggable=1, leaf_font=helv)
+        widget.bind_click_trees(widget.toggle_collapsed)
+        self._widgets.append(widget)
+        self._cframe.add_widget(widget)
+        self._layout()
 
     def _init_menubar(self):
         menubar = Menu(self._top)
@@ -167,7 +184,7 @@ class BetterTreeView(TreeView):
                                 steps=self.input_box("New # Steps")))
 
         simmenu.add_command(label="Re-run", underline = 0,
-                            command = lambda: self.simulation.run())
+                            command = lambda: self.rerun_sim())
 
         menubar.add_cascade(label = "Simulation", underline = 0, menu = simmenu)
 
@@ -179,7 +196,9 @@ def draw_a_tree(tree):
 
 def get_tree_view(tree):
     if isinstance(tree, BPTree):
-        return BetterTreeView(Simulation(tree.__class__), BP_tree_to_nltk_tree(tree.root))
+        sim = Simulation(tree.__class__)
+        sim.tree = tree
+        return BetterTreeView(sim)
 
 def BP_tree_to_nltk_tree(tree):
     root = Tree(str(tree.keys), children = [])

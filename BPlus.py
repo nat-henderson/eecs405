@@ -133,7 +133,7 @@ class BPnode:
     
     def merge(self, node):
         if self.findMin() < node.findMin():
-            self.keys.append(node.findMin)
+            self.keys.append(node.findMin())
             self.keys.extend(node.keys)
             self.children.extend(node.children)
         else:
