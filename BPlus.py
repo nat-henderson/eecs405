@@ -49,11 +49,17 @@ class BPnode:
                 self.keys.append(self.children[0].findMin())
                 self.children.insert(0,node)
         else:
-            index = 0
-            while index < len(self.keys) and minimum >= self.keys[index]:
-                index = index + 1
-            self.keys.insert(index, minimum)
-            self.children.insert(index+1, node)
+            if minimum <= self.children[0].findMin():
+                self.children.insert(0, node)
+                self.keys.insert(0, self.children[1].findMin())
+                if isinstance(self.parent, BPnode):
+                    self.parent.updateKey(self)
+            else:
+                index = 0
+                while index < len(self.keys) and minimum >= self.keys[index]:
+                    index = index + 1
+                self.keys.insert(index, minimum)
+                self.children.insert(index+1, node)
         
         node.updateParent(self)
         
@@ -67,6 +73,8 @@ class BPnode:
         self.keys = self.keys[mid:]
         self.children = self.children[mid:]
         newNode = BPnode(self.parent, 1, 0, 0, 0, self.order-1, self.coalescing, keys=newKeys, children=newChildren)
+        if isinstance(self.parent, BPnode):
+            self.parent.updateKey(self)
         
         for child in newChildren:
             child.updateParent(newNode)
@@ -188,6 +196,7 @@ class BPleaf:
             newRoot.insert(self)
             newRoot.insert(newNode)
         else:
+            self.parent.updateKey(self)
             self.parent.insert(newNode)
         
     def delete(self, key):
