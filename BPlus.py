@@ -235,7 +235,7 @@ class BPleaf:
             if len(self.keys) < math.ceil(self.order/2.0) and not isinstance(self.parent, BPTree) and self.coalescing:
                 self.parent.combine(self)
             elif not self.coalescing and len(self.keys) == 0 and isinstance(self.parent, BPnode):
-                self.parent.remove(self)
+                self.parent.combine(self)
             return True
         else:
             return False
