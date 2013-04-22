@@ -1,4 +1,5 @@
-from BPlus import BPTree, BPnode, BPleaf
+from BPlus import BPTree, BPnode
+from BTree import BTree, Node
 from Tkinter import *
 from nltk.tree import Tree
 from nltk.draw.tree import TreeView, TreeWidget
@@ -191,18 +192,18 @@ class BetterTreeView(TreeView):
         self._top.config(menu = menubar)
 
 def draw_a_tree(tree):
-    if isinstance(tree, BPTree):
+    if isinstance(tree, BPTree) or isinstance(tree, BTree):
         BP_tree_to_nltk_tree(tree.root).draw()
 
 def get_tree_view(tree):
-    if isinstance(tree, BPTree):
+    if isinstance(tree, BPTree) or isinstance(tree, BTree):
         sim = Simulation(tree.__class__)
         sim.tree = tree
         return BetterTreeView(sim)
 
 def BP_tree_to_nltk_tree(tree):
     root = Tree(str(tree.keys), children = [])
-    if isinstance(tree, BPnode):
+    if isinstance(tree, BPnode) or isinstance(tree, Node):
         for child in tree.children:
             root.append(BP_tree_to_nltk_tree(child))
 

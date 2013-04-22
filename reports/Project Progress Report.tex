@@ -74,46 +74,91 @@ The GUI is inherited primarily from the NLTK toolkit's TKinter tree-drawing meth
 
 Included here are screenshots of the GUI in all modes of operation:
 
-\begin{figure}[h]
+\begin{figure}[h!]
 \centerline{\includegraphics{Images/gui1.png}}
 \caption{The GUI in its standard form, holding a very small B+ tree}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[h!]
 \centerline{\includegraphics{Images/gui2.png}}
 \caption{The simulation menu, allowing for adjustments to the simulation parameters}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[h!]
 \centerline{\includegraphics{Images/gui4.png}}
 \caption{The menu allowing for modification to the size of the tree, inherited from NLTK}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[h!]
 \centerline{\includegraphics{Images/gui3.png}}
 \caption{The menu allowing for easier display in postscript, inherited from NLTK}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[h!]
 \centerline{\includegraphics{Images/gui5.png}}
 \caption{The GUI for inserting new parameters; in this case, block size.}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[h!]
 \centerline{\includegraphics[width=1.2\linewidth]{Images/gui7.png}}
 \caption{The GUI in its standard form, holding a very large B+ tree, uncoalesced.  We can see underfull nodes here, like the one third from the left.  This displays a potential problem of the GUI; very very large trees have a branching factor far too high to be easily seen all at once}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[h!]
 \centerline{\includegraphics[width=1.2\linewidth]{Images/gui8.png}}
 \caption{The GUI in its standard form, holding a very large B+ tree, coalesced.  We can see no underfull nodes here.  Additionally, we can see that there is only one root node, instead of two as in figure 6; this is because we have fewer blocks overall.}
 \end{figure}
 
-\section{Simulation}
+\clearpage
 
+\section{Simulation}
+The simulation class takes in all the arguments of the tree class, as stated above in section 3.  It also takes in parameters for type of tree to simulate, and insert-load, delete-load, and search-load, which should be percentages which add to 1.0, and a number of steps to run.  The simulation has an execute\_insert, execute\_delete, and execute\_read method, each of which take in a key, and will modify the tree appropriately, so it can be used as an interface to the output B+-tree or B-tree.\\
+
+As its core method, the simulation class has a run() method.  This method initializes a tree of the correct type, then runs for n\_steps steps, choosing an operation at random at each step.  The operation selected is weighted by the input weights as entered.  The key for the operation is selected at random from a range of [0,10000].
 
 \section{Experiments}
 
+We ran the simulation for one million steps, at increments of insert/delete ratio of 0.1.  We began with an insert/delete ratio of 1.0/0.0 and proceeded down to 0.1/0.9.  We did this for each of B-trees and B+-trees with coalescing turned on and off.  We found several interesting results, which follow:\\
+
+\begin{figure}[h!]
+\centerline{\includegraphics[width=1.2\linewidth]{Images/figure1.png}}
+\caption{Index Blocks as a function of inserts for B-tree and B+-tree}
+\end{figure}
+
+First, and most obviously, as shown here in Figure 8, a B-tree uses more blocks than a B+-tree as the number of inserts increases.  Both scales here are linear, so we can see that both are a linear function of number of inserts.\\
+
+\begin{figure}[h!]
+\centerline{\includegraphics[width=1.2\linewidth]{Images/figure2.png}}
+\caption{Height of trees, on average, given number of inserts}
+\end{figure}
+
+In Figure 9 we see the height required, on average, for a tree with a given number of inserts.  As above, B+-trees are more space-efficient, maxing out at around 8 nodes in the tree, where B-trees require around 10 for very large numbers of inserts.\\
+
+\begin{figure}[h!]
+\centerline{\includegraphics[width=1.2\linewidth]{Images/figure3.png}}
+\caption{Time efficiency of the B and B+-trees}
+\end{figure}
+
+In figure 10 we can see what we get for our inefficient space usage in the B-tree vs. B+-tree.  The B-tree is consistently faster to use than the B+-tree, requiring around 0.4 s / 10000 inserts instead of 0.5 s / 10000 inserts of the B+-tree.  We should, however, recall that this experiment was done without using swap space on disk, and the disk operations are more costly than the in-memory operations.  That is the purpose of using B+-trees instead of B-trees: to use in-memory space more efficiently and prevent having to swap to disk in the eventual case where the index cannot be held in memory.\\
+
+\begin{figure}[h!]
+\centerline{\includegraphics[width=1.2\linewidth]{Images/figure5.png}}
+\caption{Comparison of different trees performance using different coalescing settings}
+\end{figure}
+
+In figure 11 we have the comparison between different trees using different coalescing settings.  We see that the B+-tree performs better than the B-tree until the insert/delete ratio is high enough, and that the non-coalescing trees follow the coalescing trees in general trend.  For the B-tree, the non-coalescing version performs better under heavy insert load, and for the B+-tree, the non-coalescing tree performs slightly better under delete-heavy load.  This makes sense: the B+-tree with a delete-heavy load will mostly be small nodes, which will cause a lot of underflows that the coalescing version will have to deal with.  The B-tree with the heavy insert-load will need to do slightly more maintenance than the non-coalescing version.  So, we can see here that under very specific circumstances, we can get a very slightly better bit of performance out of a non-coalescing version.  This marginally-better performance will be amplified substantially when we end up swapping to disk, as we would in most DBMSs.\\
+
+\begin{figure}[h!]
+\centerline{\includegraphics[width=1.2\linewidth]{Images/figure4.png}}
+\caption{Comparison of different trees storage utilization using different coalescing settings}
+\end{figure}
+
+In figure 12 we see the performance in storage utilization for the different kinds of trees, using different coalescing settings.  As we would expect, the B+-tree makes better use of its storage than the B-tree, and both non-coalescing versions make very poor use of their storage as the insert-delete ratio increases.\\
+
+\clearpage
+
 \section{Conclusion}
+
+We conclude that, under certain very specific circumstances, it might be a good idea to turn off coalescing in a database.  It certainly fails to impact performance substantially to remain uncoalesced for a short period of time, and therefore it makes sense that most enterprise database systems have a specific "COALESCE" command which will cause the database to coalesce its indices.  This command could be called under situations of very low load on the database, and get the best of both worlds: fast response time overall, and better storage utilization.
 
 \end{document}
