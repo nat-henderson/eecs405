@@ -50,6 +50,9 @@ class BTree(object):
     def numElements(self):
         return self.elements
     
+    def storageUtil(self):
+        return self.root.storageUtil(self.keySize, self.dataRecordSize, self.blockPointerSize, self.dataPointerSize) / (self.numIndexBlocks() * self.blockSize * 1.0)
+    
     def __str__(self):
         return str(self.root)
 
@@ -214,6 +217,12 @@ class Node(object):
             blocks = blocks + child.numIndexBlocks()
         return blocks
     
+    def storageUtil(self, keySize, dataRecordSize, blockPointerSize, dataPointerSize):
+        childrenUtil = 0
+        for child in self.children:
+            childrenUtil = childrenUtil + child.storageUtil(keySize, dataRecordSize, blockPointerSize, dataPointerSize)
+        return (keySize + dataPointerSize)*len(self.keys) + blockPointerSize*len(self.children) + childrenUtil
+    
     def __str__(self):
         output = "[ \n"
         output = output + str(self.children[0])
@@ -294,6 +303,9 @@ class Leaf(object):
     
     def numIndexBlocks(self):
         return 1
+    
+    def storageUtil(self, keySize, dataRecordSize, blockPointerSize, dataPointerSize):
+        return blockPointerSize + len(self.keys)*(keySize + dataPointerSize)
     
     def __str__(self):
         output = "[ "

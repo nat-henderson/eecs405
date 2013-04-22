@@ -46,6 +46,9 @@ class BPTree:
     def numElements(self):
         return self.elements
     
+    def storageUtil(self):
+        return self.root.storageUtil(self.keySize, self.dataRecordSize, self.blockPointerSize, self.dataPointerSize) / (self.numIndexBlocks() * self.blockSize * 1.0)
+    
     def __str__(self):
         return str(self.root)
 
@@ -112,16 +115,19 @@ class BPnode:
             self.parent.insert(newNode)
     
     def combine(self, node):
-        index = self.children.index(node)
-        if index == len(self.children) - 1:
-            mergeChild = self.children[index-1]
-            self.children.pop(index-1)
-            self.keys.pop(index-1)
+        if len(self.children) == 1:
+            self.children.pop(0)
         else:
-            mergeChild = self.children[index+1]
-            self.children.pop(index+1)
-            self.keys.pop(index)
-        node.merge(mergeChild)
+            index = self.children.index(node)
+            if index == len(self.children) - 1:
+                mergeChild = self.children[index-1]
+                self.children.pop(index-1)
+                self.keys.pop(index-1)
+            else:
+                mergeChild = self.children[index+1]
+                self.children.pop(index+1)
+                self.keys.pop(index)
+            node.merge(mergeChild)
         
         if isinstance(self.parent, BPTree) and len(self.children) == 1:
             self.parent.root = self.children[0]
@@ -132,7 +138,10 @@ class BPnode:
             self.parent.combine(self)
     
     def merge(self, node):
-        if self.findMin() < node.findMin():
+        if len(self.children) == 0:
+            self.keys.extend(node.keys)
+            self.children.extend(node.children)
+        elif self.findMin() < node.findMin():
             self.keys.append(node.findMin())
             self.keys.extend(node.keys)
             self.children.extend(node.children)
@@ -186,6 +195,12 @@ class BPnode:
         for child in self.children:
             blocks = blocks + child.numIndexBlocks()
         return blocks
+    
+    def storageUtil(self, keySize, dataRecordSize, blockPointerSize, dataPointerSize):
+        childrenUtil = 0
+        for child in self.children:
+            childrenUtil = childrenUtil + child.storageUtil(keySize, dataRecordSize, blockPointerSize, dataPointerSize)
+        return keySize*len(self.keys) + blockPointerSize*len(self.children) + childrenUtil
     
     def __str__(self):
         output = "[ \n"
@@ -265,6 +280,9 @@ class BPleaf:
     
     def numIndexBlocks(self):
         return 1
+    
+    def storageUtil(self, keySize, dataRecordSize, blockPointerSize, dataPointerSize):
+        return blockPointerSize + len(self.keys)*(keySize + dataPointerSize)
     
     def __str__(self):
         output = "[ "
