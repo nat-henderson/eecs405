@@ -115,16 +115,19 @@ class BPnode:
             self.parent.insert(newNode)
     
     def combine(self, node):
-        index = self.children.index(node)
-        if index == len(self.children) - 1:
-            mergeChild = self.children[index-1]
-            self.children.pop(index-1)
-            self.keys.pop(index-1)
+        if len(self.children) == 1:
+            self.children.pop(0)
         else:
-            mergeChild = self.children[index+1]
-            self.children.pop(index+1)
-            self.keys.pop(index)
-        node.merge(mergeChild)
+            index = self.children.index(node)
+            if index == len(self.children) - 1:
+                mergeChild = self.children[index-1]
+                self.children.pop(index-1)
+                self.keys.pop(index-1)
+            else:
+                mergeChild = self.children[index+1]
+                self.children.pop(index+1)
+                self.keys.pop(index)
+            node.merge(mergeChild)
         
         if isinstance(self.parent, BPTree) and len(self.children) == 1:
             self.parent.root = self.children[0]
@@ -135,7 +138,10 @@ class BPnode:
             self.parent.combine(self)
     
     def merge(self, node):
-        if self.findMin() < node.findMin():
+        if len(self.children) == 0:
+            self.keys.extend(node.keys)
+            self.children.extend(node.children)
+        elif self.findMin() < node.findMin():
             self.keys.append(node.findMin())
             self.keys.extend(node.keys)
             self.children.extend(node.children)
@@ -244,7 +250,7 @@ class BPleaf:
             if len(self.keys) < math.ceil(self.order/2.0) and not isinstance(self.parent, BPTree) and self.coalescing:
                 self.parent.combine(self)
             elif not self.coalescing and len(self.keys) == 0 and isinstance(self.parent, BPnode):
-                self.parent.remove(self)
+                self.parent.combine(self)
             return True
         else:
             return False
