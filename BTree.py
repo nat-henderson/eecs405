@@ -10,14 +10,12 @@ class BTree(object):
         self.blockSize = blockSize
         self.coalescing = coalescing
         self.root = Leaf(self, keySize, dataRecord, blockPointer, dataPointer, blockSize, coalescing, keys = [])
-        self.elements = 0
     
     def insert(self, key):
         node = self.root
         while not isinstance(node, Leaf):
             node = node.insertSearch(key)
         node.insert(key)
-        self.elements = self.elements + 1
     
     def delete(self, key):
         node = self.root
@@ -26,8 +24,7 @@ class BTree(object):
             if nextNode == node:
                 break
             node = nextNode
-        if node.delete(key):
-            self.elements = self.elements - 1
+        node.delete(key)
     
     def lookup(self, key):
         return self.root.findKey(key,1)
@@ -45,10 +42,10 @@ class BTree(object):
     
     def numDataBlocks(self):
         dataPerBlock = math.floor(self.blockSize / self.dataRecordSize)
-        return math.ceil(self.elements / dataPerBlock)
+        return math.ceil(self.numElements() / dataPerBlock)
     
     def numElements(self):
-        return self.elements
+        return self.root.numElements()
     
     def storageUtil(self):
         return self.root.storageUtil(self.keySize, self.dataRecordSize, self.blockPointerSize, self.dataPointerSize) / (self.numIndexBlocks() * self.blockSize * 1.0)
@@ -130,7 +127,10 @@ class Node(object):
                 self.parent.combine(self)
     
     def merge(self, node, parentKey):
-        if self.findMin() < node.findMin:
+        if len(self.children) == 0:
+            self.keys.extend(node.keys)
+            self.children.extend(node.children)
+        elif self.findMin() < node.findMin:
             self.children.extend(node.children)
             self.keys.append(parentKey)
             self.keys.extend(node.keys)
@@ -223,6 +223,12 @@ class Node(object):
             childrenUtil = childrenUtil + child.storageUtil(keySize, dataRecordSize, blockPointerSize, dataPointerSize)
         return (keySize + dataPointerSize)*len(self.keys) + blockPointerSize*len(self.children) + childrenUtil
     
+    def numElements(self):
+        childElements = 0
+        for child in self.children:
+            childElements = childElements + child.numElements()
+        return len(self.keys) + childElements
+    
     def __str__(self):
         output = "[ \n"
         output = output + str(self.children[0])
@@ -306,6 +312,9 @@ class Leaf(object):
     
     def storageUtil(self, keySize, dataRecordSize, blockPointerSize, dataPointerSize):
         return blockPointerSize + len(self.keys)*(keySize + dataPointerSize)
+    
+    def numElements(self):
+        return len(self.keys)
     
     def __str__(self):
         output = "[ "

@@ -9,21 +9,18 @@ class BPTree:
         self.blockSize = blockSize
         self.coalescing = coalescing
         self.root = BPleaf(self, keySize, dataRecord, blockPointer, dataPointer, blockSize, coalescing, keys = [])
-        self.elements = 0
     
     def insert(self, key):
         node = self.root
         while not isinstance(node, BPleaf):
             node = node.search(key)
         node.insert(key)
-        self.elements = self.elements + 1
     
     def delete(self, key):
         node = self.root
         while not isinstance(node, BPleaf):
             node = node.search(key)
-        if node.delete(key):
-            self.elements = self.elements - 1
+        node.delete(key)
     
     def lookup(self, key):
         return self.root.findKey(key, 1)
@@ -41,10 +38,10 @@ class BPTree:
     
     def numDataBlocks(self):
         dataPerBlock = math.floor(self.blockSize / self.dataRecordSize)
-        return math.ceil(self.elements / dataPerBlock)
+        return math.ceil(self.numElements() / dataPerBlock)
     
     def numElements(self):
-        return self.elements
+        return self.root.numElements()
     
     def storageUtil(self):
         return self.root.storageUtil(self.keySize, self.dataRecordSize, self.blockPointerSize, self.dataPointerSize) / (self.numIndexBlocks() * self.blockSize * 1.0)
@@ -202,6 +199,12 @@ class BPnode:
             childrenUtil = childrenUtil + child.storageUtil(keySize, dataRecordSize, blockPointerSize, dataPointerSize)
         return keySize*len(self.keys) + blockPointerSize*len(self.children) + childrenUtil
     
+    def numElements(self):
+        elements = 0
+        for child in self.children:
+            elements = elements + child.numElements()
+        return elements
+    
     def __str__(self):
         output = "[ \n"
         output = output + str(self.children[0])
@@ -283,6 +286,9 @@ class BPleaf:
     
     def storageUtil(self, keySize, dataRecordSize, blockPointerSize, dataPointerSize):
         return blockPointerSize + len(self.keys)*(keySize + dataPointerSize)
+    
+    def numElements(self):
+        return len(self.keys)
     
     def __str__(self):
         output = "[ "
