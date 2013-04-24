@@ -43,9 +43,12 @@ class Simulation:
         #print "deleting " + str(to_delete)
         self.tree.delete(to_delete)
 
+    def new_tree(self):
+        self.tree = self.treetype(self.key_size, self.data_record_size, self.index_pointer_size,
+                    self.data_pointer_size, self.block_size, self.coalesce)
+
     def run(self):
-        root = self.treetype(self.key_size, self.data_record_size, self.index_pointer_size,
-                             self.data_pointer_size, self.block_size, self.coalesce)
+        self.new_tree()
         time.clock()
         for idx in range(self.steps):
             r = random.random()
@@ -62,6 +65,6 @@ if __name__ == "__main__":
     from BPlus import BPTree
     from gui import BetterTreeView
     sim = Simulation(BPTree)
-    sim.run()
+    #sim.run()
     bv = BetterTreeView(sim)
     bv.mainloop()

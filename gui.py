@@ -108,13 +108,51 @@ class BetterTreeView(TreeView):
         super(BetterTreeView, self).__init__(BP_tree_to_nltk_tree(
             simulation.tree.root))
         self.simulation = simulation
+        self.top = None
+        self.display_label()
 
     def input_box(self, msg):
         d = CustomDialog(self._top, msg = msg)
         return d.result
 
+    def execute_insert(self, to_insert):
+        self.simulation.execute_insert(to_insert)
+        self.redraw()
+
+    def execute_delete(self, to_delete):
+        self.simulation.execute_delete(to_delete)
+        self.redraw()
+
+    def display_label(self):
+        if self.top:
+            self.top.destroy()
+        top = Toplevel(self._top)
+        top.title("Stats")
+        self.top = top
+
+        msg = Message(top, text="Height:  " + str(self.simulation.tree.height()))
+        msg.pack()
+
+        msg2 = Message(top, text="Number of Elements:  " + str(self.simulation.tree.numElements()))
+        msg2.pack()
+
+        msg3 = Message(top, text="Storage Utilization:  " + str(self.simulation.tree.storageUtil()))
+        msg3.pack()
+
+        msg4 = Message(top, text="Number of Data Blocks:  " + str(self.simulation.tree.numDataBlocks()))
+        msg4.pack()
+
+        msg4 = Message(top, text="Number of Index Blocks:  " + str(self.simulation.tree.numIndexBlocks()))
+        msg4.pack()
+
+        button = Button(top, text="Dismiss", command=top.destroy)
+        button.pack()
+
     def rerun_sim(self):
         self.simulation.run()
+        self.redraw()
+
+    def redraw(self):
         for w in self._widgets:
             self._cframe.destroy_widget(w)
         del self._widgets[:]
@@ -128,7 +166,13 @@ class BetterTreeView(TreeView):
         self._widgets.append(widget)
         self._cframe.add_widget(widget)
         self._layout()
+        self.display_label()
 
+    def set_tree(self, treetype):
+        self.simulation.treetype = treetype
+        self.simulation.new_tree()
+        self.redraw()
+    
     def _init_menubar(self):
         menubar = Menu(self._top)
 
@@ -154,6 +198,15 @@ class BetterTreeView(TreeView):
         menubar.add_cascade(label='Zoom', underline=0, menu=zoommenu)
 
         simmenu = Menu(menubar, tearoff = 0)
+
+        simmenu.add_command(label="Add Key", underline = 0,
+                            command = lambda: self.execute_insert(
+                                self.input_box("Enter Key:  ")))
+
+        simmenu.add_command(label="Delete Key", underline = 0,
+                            command = lambda: self.execute_delete(
+                                self.input_box("Enter Key:  ")))
+
         simmenu.add_command(label="Key Size", underline = 0,
                             command = lambda: self.simulation.alter_parameters(
                                 key_size=self.input_box("New Key Size")))
@@ -188,6 +241,16 @@ class BetterTreeView(TreeView):
                             command = lambda: self.rerun_sim())
 
         menubar.add_cascade(label = "Simulation", underline = 0, menu = simmenu)
+
+        featuremenu = Menu(menubar, tearoff=0)
+
+        featuremenu.add_radiobutton(label='B+-tree',
+                                 underline=0, command=lambda: self.set_tree(BPTree))
+
+        featuremenu.add_radiobutton(label='B-tree', 
+                                 underline=0, command=lambda: self.set_tree(BTree))
+
+        menubar.add_cascade(label = "Tree Type", underline = 0, menu = featuremenu)
 
         self._top.config(menu = menubar)
 
