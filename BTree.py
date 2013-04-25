@@ -42,7 +42,10 @@ class BTree(object):
     
     def numDataBlocks(self):
         dataPerBlock = math.floor(self.blockSize / self.dataRecordSize)
-        return math.ceil(self.numElements() / dataPerBlock)
+        if dataPerBlock == 0:
+            return self.numElements()
+        else:
+            return math.ceil(self.numElements() / dataPerBlock)
     
     def numElements(self):
         return self.root.numElements()

@@ -38,7 +38,10 @@ class BPTree:
     
     def numDataBlocks(self):
         dataPerBlock = math.floor(self.blockSize / self.dataRecordSize)
-        return math.ceil(self.numElements() / dataPerBlock)
+        if dataPerBlock == 0:
+            return self.numElements()
+        else:
+            return math.ceil(self.numElements() / dataPerBlock)
     
     def numElements(self):
         return self.root.numElements()
@@ -51,6 +54,11 @@ class BPTree:
 
 class BPnode:
     def __init__(self, parent, keySize, dataRecord, blockPointer, dataPointer, blockSize, coalescing, keys=[], children=[]):
+        self.keySize=keySize
+        self.dataRecordSize = dataRecord
+        self.blockPointerSize = blockPointer
+        self.dataPointerSize = dataPointer
+        self.blockSize = blockSize
         self.parent = parent
         self.order = int(math.floor(float(blockSize-blockPointer)/(keySize+blockPointer))) + 1
         self.keys = keys
@@ -93,7 +101,7 @@ class BPnode:
         newChildren = self.children[:mid]
         self.keys = self.keys[mid:]
         self.children = self.children[mid:]
-        newNode = BPnode(self.parent, 1, 0, 0, 0, self.order-1, self.coalescing, keys=newKeys, children=newChildren)
+        newNode = BPnode(self.parent, self.keySize, self.dataRecordSize, self.blockPointerSize, self.dataPointerSize, self.blockSize, self.coalescing, keys=newKeys, children=newChildren)
         if isinstance(self.parent, BPnode):
             self.parent.updateKey(self)
         
@@ -102,7 +110,7 @@ class BPnode:
         
         if isinstance(self.parent, BPTree):
             tree = self.parent
-            newRoot = BPnode(tree, 1, 0, 0, 0, self.order-1, self.coalescing, keys=[], children=[])
+            newRoot = BPnode(tree, self.keySize, self.dataRecordSize, self.blockPointerSize, self.dataPointerSize, self.blockSize, self.coalescing, keys=[], children=[])
             tree.root = newRoot
             self.parent = newRoot
             newNode.parent = newRoot
@@ -218,6 +226,11 @@ class BPnode:
 class BPleaf:
     def __init__(self, parent, keySize, dataRecord, blockPointer, dataPointer, blockSize, coalescing, keys=[]):
         self.parent = parent
+        self.keySize=keySize
+        self.dataRecordSize = dataRecord
+        self.blockPointerSize = blockPointer
+        self.dataPointerSize = dataPointer
+        self.blockSize = blockSize
         self.order = int(math.floor(float(blockSize-blockPointer)/(keySize+dataPointer)))
         self.keys = keys
         self.coalescing = coalescing
@@ -231,7 +244,7 @@ class BPleaf:
     def split(self):
         newNodeList = self.keys[int(math.ceil(self.order/2.0)):]
         self.keys = self.keys[:int(math.ceil(self.order/2.0))]
-        newNode = BPleaf(self.parent, 1, 0, 0, 0, self.order, self.coalescing, newNodeList)
+        newNode = BPleaf(self.parent, self.keySize, self.dataRecordSize, self.blockPointerSize, self.dataPointerSize, self.blockSize, self.coalescing, newNodeList)
         if isinstance(self.parent, BPTree):
             tree = self.parent
             newRoot = BPnode(tree, tree.keySize, tree.dataRecordSize, tree.blockPointerSize, tree.dataPointerSize, tree.blockSize, self.coalescing, keys=[], children=[])
